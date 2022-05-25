@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import * as Tone from "tone";
 
 import "./App.css";
-import { PianoRoll } from "./components/ui/PianoRoll/PIanoRoll";
+import { PianoRoll } from "./components/ui/PianoRoll/PianoRoll";
 
 const MIDI_FILE = "230_bpm_multitrack.mid";
 
