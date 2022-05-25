@@ -1,7 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as PIXI from "pixi.js";
 import { Stage, Container, Graphics } from "@inlet/react-pixi";
 import colors from "tailwindcss/colors";
+import * as Tone from "tone";
+
+const useRequestAnimationFrame = (
+  isRunning: boolean,
+  callback: (...args: any[]) => any
+) => {
+  const reqIdRef = useRef<any>();
+  const loop = useCallback(() => {
+    if (isRunning) {
+      reqIdRef.current = requestAnimationFrame(loop);
+      callback();
+    }
+  }, [isRunning, callback]);
+
+  React.useEffect(() => {
+    reqIdRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(reqIdRef.current);
+  }, [loop]);
+};
 
 export const PianoRoll: React.FC<any> = ({ notes }) => {
   const [width, setWidth] = useState(0);
@@ -15,6 +34,19 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
       antialias: resolution <= 1,
     },
   };
+
+  const [ticks, setTicks] = useState(0);
+
+  const countUp = useCallback(() => {
+    setTicks(Tone.Transport.ticks);
+  }, []);
+  useRequestAnimationFrame(true, countUp);
+
+  // console.log("Tone.Transport.ticks:", Tone.Transport.ticks);
+  // useRequestAnimationFrame((progress, next) => {
+  //   setTicks(Tone.Transport.ticks);
+  //   next();
+  // });
 
   useEffect(() => {
     const endTicks = notes.reduce(
@@ -68,8 +100,19 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
     [width]
   );
 
+  const drawPlayheadLine = React.useCallback(
+    (g: any) => {
+      g.clear();
+      g.lineStyle(1, 0xffffff, 1);
+      g.moveTo(Math.round((ticks * 32) / 96 / 2), 0);
+      g.lineTo(Math.round((ticks * 32) / 96 / 2), height);
+    },
+    [ticks]
+  );
+
   return (
     <div>
+      <div>{`Ticks: ${ticks}`}</div>
       <Stage
         width={960}
         height={640}
@@ -86,6 +129,7 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
         <Container {...scroll}>
           <Graphics draw={drawBackground} />
           <Graphics draw={drawNotes} />
+          <Graphics draw={drawPlayheadLine} />
         </Container>
       </Stage>
     </div>
