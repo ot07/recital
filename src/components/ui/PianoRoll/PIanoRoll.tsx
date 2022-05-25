@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import * as PIXI from "pixi.js";
-import { Stage, Graphics } from "@inlet/react-pixi";
+import { Stage, Container, Graphics } from "@inlet/react-pixi";
 import colors from "tailwindcss/colors";
 
 export const PianoRoll: React.FC<any> = ({ notes }) => {
   const [width, setWidth] = useState(0);
+  const [scroll, setScroll] = useState({ x: 0, y: 0 });
   const height = 128 * 16;
   const resolution = Math.min(window.devicePixelRatio, 2);
   const stageProps = {
@@ -45,7 +46,7 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
     (g: any) => {
       g.clear();
       g.beginFill(0x272934);
-      g.drawRect(0, 0, width, 16 * 128);
+      g.drawRect(0, 0, width, height);
       g.endFill();
 
       g.beginFill(0x1e2028);
@@ -69,9 +70,23 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
 
   return (
     <div>
-      <Stage width={width} height={height} options={{ ...stageProps.options }}>
-        <Graphics draw={drawBackground} />
-        <Graphics draw={drawNotes} />
+      <Stage
+        width={960}
+        height={640}
+        {...stageProps}
+        onWheel={(event) =>
+          setScroll((scroll) => {
+            return {
+              x: Math.max(Math.min(scroll.x - event.deltaX, 0), -width + 960),
+              y: Math.max(Math.min(scroll.y - event.deltaY, 0), -height + 640),
+            };
+          })
+        }
+      >
+        <Container {...scroll}>
+          <Graphics draw={drawBackground} />
+          <Graphics draw={drawNotes} />
+        </Container>
       </Stage>
     </div>
   );
