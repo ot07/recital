@@ -49,19 +49,29 @@ const TrackConsumer: React.FC<any> = ({
 
     // Start/Stop track!
     if (playbackState === "started" && prevPlaybackState === "stopped") {
-      part.current = new Tone.Part((time, note) => {
-        instrumentsRef.current.forEach((instrument) => {
-          instrument.triggerAttackRelease(
-            note.name,
-            note.duration,
-            time,
-            note.velocity
-          );
-        });
-        if (typeof onStepPlay === "function") {
-          onStepPlay(time, note);
-        }
-      }, notes);
+      part.current = new Tone.Part(
+        (time, note) => {
+          instrumentsRef.current.forEach((instrument) => {
+            instrument.triggerAttackRelease(
+              note.pitch,
+              note.duration,
+              time,
+              note.velocity
+            );
+          });
+          if (typeof onStepPlay === "function") {
+            onStepPlay(time, note);
+          }
+        },
+        notes.map((note: any) => {
+          return {
+            pitch: note.pitch,
+            duration: `${note.durationTicks}i`,
+            time: `${note.ticks}i`,
+            velocity: note.velocity,
+          };
+        })
+      );
 
       // Start a little slower to wait for tempo and time signature to change
       part.current?.start(0.01);

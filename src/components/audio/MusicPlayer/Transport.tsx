@@ -28,13 +28,26 @@ export const Transport: React.FC<any> = ({
 
   useEffect(() => {
     if (playbackState === "started") {
-      tempoPart.current = new Tone.Part((_, tempo) => {
-        Tone.Transport.bpm.value = tempo.bpm;
-      }, tempos);
+      tempoPart.current = new Tone.Part(
+        (_, tempo) => {
+          Tone.Transport.bpm.value = tempo.bpm;
+        },
+        tempos.map((tempo: any) => {
+          return { bpm: tempo.bpm, time: `${tempo.ticks}i` };
+        })
+      );
 
-      timeSignaturePart.current = new Tone.Part((_, timeSignature) => {
-        Tone.Transport.timeSignature = timeSignature.timeSignature;
-      }, timeSignatures);
+      timeSignaturePart.current = new Tone.Part(
+        (_, timeSignature) => {
+          Tone.Transport.timeSignature = timeSignature.timeSignature;
+        },
+        timeSignatures.map((timeSignature: any) => {
+          return {
+            timeSignature: timeSignature.timeSignature,
+            time: `${timeSignature.ticks}i`,
+          };
+        })
+      );
 
       tempoPart.current?.start(0);
       timeSignaturePart.current?.start(0);

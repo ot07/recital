@@ -3,6 +3,8 @@ import * as PIXI from "pixi.js";
 import { Stage, Container, Graphics } from "@inlet/react-pixi";
 import colors from "tailwindcss/colors";
 import * as Tone from "tone";
+import { Transport, Track, Instrument } from "../../audio/MusicPlayer";
+import { pitchToMidi } from "../../../utils/midi";
 
 const useRequestAnimationFrame = (
   isRunning: boolean,
@@ -23,25 +25,21 @@ const useRequestAnimationFrame = (
 };
 
 export const Note: React.FC<any> = ({
-  index,
   ticks,
   durationTicks,
-  midiNoteNumber,
+  pitch,
   currentTicks,
 }) => {
   const draw = (g: any) => {
     g.clear();
-    if (
-      ticks * 2 <= currentTicks &&
-      (ticks + durationTicks) * 2 > currentTicks
-    ) {
+    if (ticks <= currentTicks && ticks + durationTicks > currentTicks) {
       g.beginFill(PIXI.utils.string2hex(colors.red[500]), 1);
     } else {
       g.beginFill(PIXI.utils.string2hex(colors.cyan[500]), 1);
     }
     g.drawRect(
       (ticks * 32) / 96,
-      16 * (127 - midiNoteNumber),
+      16 * (127 - pitchToMidi(pitch)),
       Math.max((durationTicks * 32) / 96 - 2, 1),
       16
     );
@@ -62,7 +60,7 @@ export const Notes: React.FC<any> = ({ notes, currentTicks }) => {
           index={index}
           ticks={note.ticks}
           durationTicks={note.durationTicks}
-          midiNoteNumber={note.midi}
+          pitch={note.pitch}
           currentTicks={currentTicks}
         />
       ))}
@@ -70,7 +68,23 @@ export const Notes: React.FC<any> = ({ notes, currentTicks }) => {
   );
 };
 
-export const PianoRoll: React.FC<any> = ({ notes }) => {
+export const PianoRoll: React.FC<any> = (props) => {
+  const [notes, setNotes] = useState(props.notes);
+  const [tempos, setTempos] = useState(props.tempos);
+  const [timeSignatures, setTimeSignatures] = useState(props.timeSignatures);
+
+  useEffect(() => {
+    setNotes(props.notes);
+  }, [props.notes]);
+
+  useEffect(() => {
+    setTempos(props.tempos);
+  }, [props.tempos]);
+
+  useEffect(() => {
+    setTimeSignatures(props.timeSignatures);
+  }, [props.timeSignatures]);
+
   const [width, setWidth] = useState(0);
   const [scroll, setScroll] = useState({ x: 0, y: 0 });
   const height = 128 * 16;
@@ -86,7 +100,7 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
   const [ticks, setTicks] = useState(0);
 
   useEffect(() => {
-    const playheadX = (ticks * 32) / 96 / 2;
+    const playheadX = (ticks * 32) / 96;
     const rightEdgeOfStage = -scroll.x + 960;
     if (playheadX - rightEdgeOfStage > 0 && playheadX - rightEdgeOfStage < 8) {
       setScroll({ ...scroll, x: scroll.x - 960 });
@@ -143,8 +157,8 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
     (g: any) => {
       g.clear();
       g.lineStyle(1, 0xffffff, 1);
-      g.moveTo(Math.round((ticks * 32) / 96 / 2) - 2, 0);
-      g.lineTo(Math.round((ticks * 32) / 96 / 2) - 2, height);
+      g.moveTo(Math.round((ticks * 32) / 96) - 2, 0);
+      g.lineTo(Math.round((ticks * 32) / 96) - 2, height);
     },
     [ticks]
   );
@@ -171,6 +185,47 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
           <Graphics draw={drawPlayheadLine} />
         </Container>
       </Stage>
+
+      <Transport
+        tempos={tempos}
+        timeSignatures={timeSignatures}
+        playbackState={props.playbackState}
+        volume={-18}
+      >
+        <Track
+          notes={notes}
+          volume={0}
+          pan={0}
+          // Callback for every tick
+          onStepPlay={(time: any, note: any) => {
+            console.log(
+              "time:",
+              time,
+              ", tempo:",
+              Tone.Transport.bpm.value,
+              ", timeSignature:",
+              Tone.Transport.timeSignature,
+              ", note:",
+              note
+            );
+          }}
+        >
+          <Instrument
+            type="synth"
+            oscillator={{ type: "square" }}
+            envelope={{
+              attack: 0.01,
+              decay: 0.1,
+              sustain: 0.5,
+              release: 0.01,
+            }}
+            polyphony={32}
+          />
+          {/* Add effects chain here */}
+          {/* <Effect type="feedbackDelay" /> */}
+          {/* <Effect type="distortion" /> */}
+        </Track>
+      </Transport>
     </div>
   );
 };
