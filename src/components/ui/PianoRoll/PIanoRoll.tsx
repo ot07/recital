@@ -22,6 +22,54 @@ const useRequestAnimationFrame = (
   }, [loop]);
 };
 
+export const Note: React.FC<any> = ({
+  index,
+  ticks,
+  durationTicks,
+  midiNoteNumber,
+  currentTicks,
+}) => {
+  const draw = (g: any) => {
+    g.clear();
+    if (
+      ticks * 2 <= currentTicks &&
+      (ticks + durationTicks) * 2 > currentTicks
+    ) {
+      g.beginFill(PIXI.utils.string2hex(colors.red[500]), 1);
+    } else {
+      g.beginFill(PIXI.utils.string2hex(colors.cyan[500]), 1);
+    }
+    g.drawRect(
+      (ticks * 32) / 96,
+      16 * (127 - midiNoteNumber),
+      Math.max((durationTicks * 32) / 96 - 2, 1),
+      16
+    );
+    g.endFill();
+  };
+
+  return <Graphics draw={draw} />;
+};
+
+export const MemorizedNote = React.memo(Note);
+
+export const Notes: React.FC<any> = ({ notes, ticks }) => {
+  return (
+    <>
+      {notes.map((note: any, index: any) => (
+        <MemorizedNote
+          key={index}
+          index={index}
+          ticks={note.ticks}
+          durationTicks={note.durationTicks}
+          midiNoteNumber={note.midi}
+          currentTicks={ticks}
+        />
+      ))}
+    </>
+  );
+};
+
 export const PianoRoll: React.FC<any> = ({ notes }) => {
   const [width, setWidth] = useState(0);
   const [scroll, setScroll] = useState({ x: 0, y: 0 });
@@ -37,10 +85,10 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
 
   const [ticks, setTicks] = useState(0);
 
-  const countUp = useCallback(() => {
+  const updateTicks = useCallback(() => {
     setTicks(Tone.Transport.ticks);
   }, []);
-  useRequestAnimationFrame(true, countUp);
+  useRequestAnimationFrame(true, updateTicks);
 
   // console.log("Tone.Transport.ticks:", Tone.Transport.ticks);
   // useRequestAnimationFrame((progress, next) => {
@@ -60,8 +108,16 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
   const drawNotes = React.useCallback(
     (g: any) => {
       g.clear();
-      g.beginFill(PIXI.utils.string2hex(colors.cyan[500]), 1);
       for (const note of notes) {
+        if (
+          Tone.Transport.state === "started" &&
+          note.ticks * 2 <= ticks &&
+          (note.ticks + note.durationTicks) * 2 > ticks
+        ) {
+          g.beginFill(PIXI.utils.string2hex(colors.red[500]), 1);
+        } else {
+          g.beginFill(PIXI.utils.string2hex(colors.cyan[500]), 1);
+        }
         g.drawRect(
           (note.ticks * 32) / 96,
           16 * (127 - note.midi),
@@ -71,8 +127,10 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
       }
       g.endFill();
     },
-    [notes]
+    [notes, ticks]
   );
+
+  // const NotesComponent = <Notes notes={notes} ticks={ticks} />;
 
   const drawBackground = React.useCallback(
     (g: any) => {
@@ -104,8 +162,8 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
     (g: any) => {
       g.clear();
       g.lineStyle(1, 0xffffff, 1);
-      g.moveTo(Math.round((ticks * 32) / 96 / 2), 0);
-      g.lineTo(Math.round((ticks * 32) / 96 / 2), height);
+      g.moveTo(Math.round((ticks * 32) / 96 / 2) - 2, 0);
+      g.lineTo(Math.round((ticks * 32) / 96 / 2) - 2, height);
     },
     [ticks]
   );
@@ -128,7 +186,7 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
       >
         <Container {...scroll}>
           <Graphics draw={drawBackground} />
-          <Graphics draw={drawNotes} />
+          <Notes notes={notes} />
           <Graphics draw={drawPlayheadLine} />
         </Container>
       </Stage>
