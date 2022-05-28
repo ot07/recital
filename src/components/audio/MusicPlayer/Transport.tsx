@@ -5,11 +5,11 @@ import { bisectRight } from "d3-array";
 import * as Tone from "tone";
 import { usePrevious } from "../../../hooks/usePrevious";
 
-export const MusicPlayerContext = React.createContext<any>({
+export const TransportContext = React.createContext<any>({
   playbackState: "stopped",
 });
 
-export const MusicPlayer: React.FC<any> = ({
+export const Transport: React.FC<any> = ({
   playbackState = "stopped",
   tempos = [],
   timeSignatures = [],
@@ -142,12 +142,12 @@ export const MusicPlayer: React.FC<any> = ({
   }
 
   return (
-    <MusicPlayerContext.Provider
+    <TransportContext.Provider
       value={{
         playbackState,
       }}
     >
       {children}
-    </MusicPlayerContext.Provider>
+    </TransportContext.Provider>
   );
 };

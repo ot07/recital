@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import equal from "fast-deep-equal";
 
-import { MusicPlayerContext } from "./MusicPlayer";
+import { TransportContext } from "./Transport";
 import * as Tone from "tone";
 import { usePrevious } from "../../../hooks/usePrevious";
 
@@ -150,7 +150,7 @@ const TrackConsumer: React.FC<any> = ({
 };
 
 export const Track: React.FC<any> = (props) => {
-  const { playbackState } = React.useContext(MusicPlayerContext);
+  const { playbackState } = React.useContext(TransportContext);
 
   if (typeof window === "undefined") {
     return null;

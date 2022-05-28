@@ -1,4 +1,4 @@
-import { MusicPlayer, Track, Instrument } from "./components/audio/MusicPlayer";
+import { Transport, Track, Instrument } from "./components/audio/MusicPlayer";
 import { Midi } from "@tonejs/midi";
 import { useEffect, useState } from "react";
 import * as Tone from "tone";
@@ -86,7 +86,7 @@ function App() {
       </p>
       <PianoRoll notes={midi ? midi.tracks[2].notes : []} />
 
-      <MusicPlayer
+      <Transport
         tempos={tempos}
         timeSignatures={timeSignatures}
         playbackState={playbackState}
@@ -143,7 +143,7 @@ function App() {
               </Track>
             ))
           : null}
-      </MusicPlayer>
+      </Transport>
     </div>
   );
 }
