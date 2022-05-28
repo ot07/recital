@@ -53,7 +53,7 @@ export const Note: React.FC<any> = ({
 
 export const MemorizedNote = React.memo(Note);
 
-export const Notes: React.FC<any> = ({ notes, ticks }) => {
+export const Notes: React.FC<any> = ({ notes, currentTicks }) => {
   return (
     <>
       {notes.map((note: any, index: any) => (
@@ -63,7 +63,7 @@ export const Notes: React.FC<any> = ({ notes, ticks }) => {
           ticks={note.ticks}
           durationTicks={note.durationTicks}
           midiNoteNumber={note.midi}
-          currentTicks={ticks}
+          currentTicks={currentTicks}
         />
       ))}
     </>
@@ -85,6 +85,14 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
 
   const [ticks, setTicks] = useState(0);
 
+  useEffect(() => {
+    const playheadX = (ticks * 32) / 96 / 2;
+    const rightEdgeOfStage = -scroll.x + 960;
+    if (playheadX - rightEdgeOfStage > 0 && playheadX - rightEdgeOfStage < 8) {
+      setScroll({ ...scroll, x: scroll.x - 960 });
+    }
+  }, [ticks, width]);
+
   const updateTicks = useCallback(() => {
     setTicks(Tone.Transport.ticks);
   }, []);
@@ -104,33 +112,6 @@ export const PianoRoll: React.FC<any> = ({ notes }) => {
     );
     setWidth((endTicks * 32) / 96);
   }, [notes]);
-
-  const drawNotes = React.useCallback(
-    (g: any) => {
-      g.clear();
-      for (const note of notes) {
-        if (
-          Tone.Transport.state === "started" &&
-          note.ticks * 2 <= ticks &&
-          (note.ticks + note.durationTicks) * 2 > ticks
-        ) {
-          g.beginFill(PIXI.utils.string2hex(colors.red[500]), 1);
-        } else {
-          g.beginFill(PIXI.utils.string2hex(colors.cyan[500]), 1);
-        }
-        g.drawRect(
-          (note.ticks * 32) / 96,
-          16 * (127 - note.midi),
-          Math.max((note.durationTicks * 32) / 96 - 2, 1),
-          16
-        );
-      }
-      g.endFill();
-    },
-    [notes, ticks]
-  );
-
-  // const NotesComponent = <Notes notes={notes} ticks={ticks} />;
 
   const drawBackground = React.useCallback(
     (g: any) => {
