@@ -68,6 +68,35 @@ export const Notes: React.FC<any> = ({ notes, currentTicks }) => {
   );
 };
 
+export const PianoRollBackground: React.FC<any> = ({ width, height }) => {
+  const draw = (g: any) => {
+    g.clear();
+    g.beginFill(0x272934);
+    g.drawRect(0, 0, width, height);
+    g.endFill();
+
+    g.beginFill(0x1e2028);
+    for (let i = 0; i < 128; i++) {
+      if ([1, 3, 6, 8, 10].includes(i % 12)) {
+        g.drawRect(0, 16 * (127 - i), width, 16);
+      }
+    }
+    g.endFill();
+
+    g.lineStyle(0.5, 0x5a5078);
+    for (let i = 0; i < 128; i++) {
+      if ([4, 11].includes(i % 12)) {
+        g.moveTo(0, 16 * (127 - i) + 0.5);
+        g.lineTo(width, 16 * (127 - i) + 0.5);
+      }
+    }
+  };
+
+  return <Graphics draw={draw} />;
+};
+
+export const MemorizedPianoRollBackground = React.memo(PianoRollBackground);
+
 export const PianoRoll: React.FC<any> = (props) => {
   const [notes, setNotes] = useState(props.notes);
   const [tempos, setTempos] = useState(props.tempos);
@@ -127,32 +156,6 @@ export const PianoRoll: React.FC<any> = (props) => {
     setWidth((endTicks * 32) / 96);
   }, [notes]);
 
-  const drawBackground = React.useCallback(
-    (g: any) => {
-      g.clear();
-      g.beginFill(0x272934);
-      g.drawRect(0, 0, width, height);
-      g.endFill();
-
-      g.beginFill(0x1e2028);
-      for (let i = 0; i < 128; i++) {
-        if ([1, 3, 6, 8, 10].includes(i % 12)) {
-          g.drawRect(0, 16 * (127 - i), width, 16);
-        }
-      }
-      g.endFill();
-
-      g.lineStyle(0.5, 0x5a5078);
-      for (let i = 0; i < 128; i++) {
-        if ([4, 11].includes(i % 12)) {
-          g.moveTo(0, 16 * (127 - i) + 0.5);
-          g.lineTo(width, 16 * (127 - i) + 0.5);
-        }
-      }
-    },
-    [width]
-  );
-
   const drawPlayheadLine = React.useCallback(
     (g: any) => {
       g.clear();
@@ -180,7 +183,7 @@ export const PianoRoll: React.FC<any> = (props) => {
         }
       >
         <Container {...scroll}>
-          <Graphics draw={drawBackground} />
+          <MemorizedPianoRollBackground width={width} height={height} />
           <Notes notes={notes} />
           <Graphics draw={drawPlayheadLine} />
         </Container>
