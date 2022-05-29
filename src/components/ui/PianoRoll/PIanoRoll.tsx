@@ -4,7 +4,33 @@ import { Stage, Container, Graphics } from "@inlet/react-pixi";
 import colors from "tailwindcss/colors";
 import * as Tone from "tone";
 import { Transport, Track, Instrument } from "../../audio/MusicPlayer";
-import { pitchToMidi } from "../../../utils/midi";
+import { pitchToMidi, midiToPitch } from "../../../utils/midi";
+import {
+  atom,
+  RecoilRoot,
+  useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilState,
+} from "recoil";
+
+const notesState = atom({
+  key: "notes",
+  default: [],
+});
+
+const temposState = atom({
+  key: "tempos",
+  default: [],
+});
+
+const timeSignaturesState = atom({
+  key: "timeSignatures",
+  default: [],
+});
+
+const scrollState = atom({
+  key: "scroll",
+  default: { x: 0, y: 0 },
+});
 
 const useRequestAnimationFrame = (
   isRunning: boolean,
@@ -24,12 +50,7 @@ const useRequestAnimationFrame = (
   }, [loop]);
 };
 
-export const Note: React.FC<any> = ({
-  ticks,
-  durationTicks,
-  pitch,
-  currentTicks,
-}) => {
+const Note: React.FC<any> = ({ ticks, durationTicks, pitch, currentTicks }) => {
   const draw = (g: any) => {
     g.clear();
     if (ticks <= currentTicks && ticks + durationTicks > currentTicks) {
@@ -46,12 +67,18 @@ export const Note: React.FC<any> = ({
     g.endFill();
   };
 
-  return <Graphics draw={draw} />;
+  return (
+    <Graphics
+      draw={draw}
+      interactive
+      pointerdown={() => alert("clicked note")}
+    />
+  );
 };
 
-export const MemorizedNote = React.memo(Note);
+const MemorizedNote = React.memo(Note);
 
-export const Notes: React.FC<any> = ({ notes, currentTicks }) => {
+const Notes: React.FC<any> = ({ notes, currentTicks }) => {
   return (
     <>
       {notes.map((note: any, index: any) => (
@@ -68,7 +95,10 @@ export const Notes: React.FC<any> = ({ notes, currentTicks }) => {
   );
 };
 
-export const PianoRollBackground: React.FC<any> = ({ width, height }) => {
+const PianoRollBackground: React.FC<any> = ({ width, height }) => {
+  const [notes, setNotes] = useRecoilState(notesState);
+  const [scroll, setScroll] = useRecoilState(scrollState);
+
   const draw = (g: any) => {
     g.clear();
     g.beginFill(0x272934);
@@ -92,15 +122,44 @@ export const PianoRollBackground: React.FC<any> = ({ width, height }) => {
     }
   };
 
-  return <Graphics draw={draw} />;
+  const addNote = (event: any) => {
+    const clickedTicks = Math.round(
+      (event.data.originalEvent.offsetX * 96) / 32
+    );
+    const clickedPitch = midiToPitch(
+      127 - Math.floor((event.data.originalEvent.offsetY - scroll.y) / 16)
+    );
+
+    setNotes((prevNotes) => {
+      const newNote = {
+        pitch: clickedPitch,
+        durationTicks: 96,
+        ticks: clickedTicks,
+        velocity: 0.5,
+      };
+      const newNotes = [...prevNotes, newNote as never];
+      console.log("notes:", notes);
+      return newNotes;
+    });
+  };
+
+  useEffect(() => {
+    console.log("notes:", notes);
+  }, [notes]);
+
+  // return <Graphics draw={draw} />;
+  return <Graphics draw={draw} interactive pointerdown={addNote} />;
 };
 
-export const MemorizedPianoRollBackground = React.memo(PianoRollBackground);
+const MemorizedPianoRollBackground = React.memo(PianoRollBackground);
 
 export const PianoRoll: React.FC<any> = (props) => {
-  const [notes, setNotes] = useState(props.notes);
-  const [tempos, setTempos] = useState(props.tempos);
-  const [timeSignatures, setTimeSignatures] = useState(props.timeSignatures);
+  const RecoilBridge = useRecoilBridgeAcrossReactRoots_UNSTABLE();
+  const [notes, setNotes] = useRecoilState(notesState);
+  const [tempos, setTempos] = useRecoilState(temposState);
+  const [timeSignatures, setTimeSignatures] =
+    useRecoilState(timeSignaturesState);
+  const [scroll, setScroll] = useRecoilState(scrollState);
 
   useEffect(() => {
     setNotes(props.notes);
@@ -115,7 +174,6 @@ export const PianoRoll: React.FC<any> = (props) => {
   }, [props.timeSignatures]);
 
   const [width, setWidth] = useState(0);
-  const [scroll, setScroll] = useState({ x: 0, y: 0 });
   const height = 128 * 16;
   const resolution = Math.min(window.devicePixelRatio, 2);
   const stageProps = {
@@ -182,11 +240,13 @@ export const PianoRoll: React.FC<any> = (props) => {
           })
         }
       >
-        <Container {...scroll}>
-          <MemorizedPianoRollBackground width={width} height={height} />
-          <Notes notes={notes} />
-          <Graphics draw={drawPlayheadLine} />
-        </Container>
+        <RecoilBridge>
+          <Container {...scroll}>
+            <MemorizedPianoRollBackground width={width} height={height} />
+            <Notes notes={notes} />
+            <Graphics draw={drawPlayheadLine} />
+          </Container>
+        </RecoilBridge>
       </Stage>
 
       <Transport
@@ -230,5 +290,13 @@ export const PianoRoll: React.FC<any> = (props) => {
         </Track>
       </Transport>
     </div>
+  );
+};
+
+export const PianoRollRoot = (props: any) => {
+  return (
+    <RecoilRoot>
+      <PianoRoll {...props} />
+    </RecoilRoot>
   );
 };

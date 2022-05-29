@@ -103,7 +103,7 @@ const TrackConsumer: React.FC<any> = ({
         });
       } else {
         // When new notes are less or more then prev, remove all and add new notes
-        part.current.removeAll();
+        part.current.clear();
         notes.forEach((note: any, i: any) => {
           part.current.add(i, note);
         });

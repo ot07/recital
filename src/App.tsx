@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import * as Tone from "tone";
 
 import "./App.css";
-import { PianoRoll } from "./components/ui/PianoRoll/PianoRoll";
+import { PianoRollRoot } from "./components/ui/PianoRoll/";
 
 const MIDI_FILE = "230_bpm_multitrack.mid";
 
@@ -93,7 +93,7 @@ function App() {
           change time signature to 5/4
         </button>
       </p>
-      <PianoRoll
+      <PianoRollRoot
         playbackState={playbackState}
         notes={notes}
         tempos={tempos}
